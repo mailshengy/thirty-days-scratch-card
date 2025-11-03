@@ -88,7 +88,7 @@ export default function ScratchTile({ id, quote, revealedAt, locked, onRevealed 
   return (
     <div
       ref={wrapRef}
-      className="relative h-[88px] w-[132px] select-none rounded-xl text-zinc-900 [background:linear-gradient(180deg,#ff8a3d_0%,#ff6f12_100%)] shadow"
+      className="relative h-[132px] w-[88px] select-none rounded-xl text-zinc-900 [background:linear-gradient(180deg,#ff8a3d_0%,#ff6f12_100%)] shadow"
       aria-live="polite"
     >
       <div className="absolute inset-0 flex flex-col items-center justify-center px-2 text-center">
