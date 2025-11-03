@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import ScratchTile from "./ScratchTile";
 
 const NUM_TILES = 30;
-const STORAGE_KEY = "scratchcard_state_v6";
+const STORAGE_KEY = "scratchcard_state_v7";
 type State = { scratched: Record<number,{ ts:string; quote:string }>; last: string|null; };
 
 const QUOTES = [
@@ -36,7 +36,7 @@ export default function ScratchGrid() {
   };
 
   return (
-    <div className="grid grid-cols-5 gap-3 px-5 pb-6 pt-3 md:grid-cols-6 md:gap-3.5">
+    <div className="grid grid-cols-3 gap-3.5 px-5 pb-6 pt-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 md:gap-4">
       {order.map(id=>{
         const persisted = state.scratched[id] || null;
         const defaultQuote = QUOTES[(id-1) % QUOTES.length];
@@ -55,15 +55,22 @@ export default function ScratchGrid() {
   );
 }
 
-export function ResetButton() {
+/* Password-protected reset button ("New Card") */
+export function NewCardButton() {
   return (
     <button
-      className="rounded-lg border border-white/15 bg-white/5 px-3.5 py-2 text-sm text-slate-100 hover:bg-white/10 transition"
+      className="rounded-md border border-white/20 bg-white/10 px-3 py-1.5 text-xs text-slate-100 hover:bg-white/15 transition"
       onClick={()=>{
-        if(confirm("Reset demo data (clears scratches)?")){ localStorage.removeItem(STORAGE_KEY); location.reload(); }
+        const pw = prompt("Enter password to reset:");
+        if (pw === "reset") {
+          localStorage.removeItem(STORAGE_KEY);
+          location.reload();
+        } else if (pw !== null) {
+          alert("Wrong password");
+        }
       }}
     >
-      Reset Demo
+      New Card
     </button>
   );
 }
