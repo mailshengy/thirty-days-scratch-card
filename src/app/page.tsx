@@ -28,7 +28,6 @@ export default function Page() {
       </Card3D>
 
       <p className="mt-6 text-xs text-slate-400">
-        Edit this page at <code>app/page.tsx</code>. The project is a Next.js App Router starter and deploys easily on Vercel.
       </p>
     </main>
   );
