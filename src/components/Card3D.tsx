@@ -1,13 +1,33 @@
 "use client";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
-type Props = { children: React.ReactNode; width?: number; height?: number; };
+type Props = { children: React.ReactNode };
 
-export default function Card3D({ children, width = 600, height = 900 }: Props) {
-  const ref = useRef<HTMLDivElement | null>(null);
+export default function Card3D({ children }: Props) {
+  const inner = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const card = inner.current!;
+    function size() {
+      const isMobile = window.innerWidth < 480;
+      const maxW = isMobile ? 520 : 560;
+      const minW = isMobile ? 260 : 360;
+      const vw = Math.min(window.innerWidth * 0.92, maxW);
+      const width = Math.max(minW, vw);
+      const ratio = isMobile ? 1.9 : 1.6; // taller on mobile so 30 tiles fit
+      const height = Math.round(width * ratio);
+      card.style.width = width + "px";
+      card.style.height = height + "px";
+    }
+    size();
+    const ro = new ResizeObserver(size);
+    ro.observe(document.body);
+    window.addEventListener("resize", size);
+    return () => { ro.disconnect(); window.removeEventListener("resize", size); };
+  }, []);
 
   function onMove(e: React.MouseEvent) {
-    const el = ref.current!;
+    const el = inner.current!;
     const r = el.getBoundingClientRect();
     const x = e.clientX - r.left;
     const y = e.clientY - r.top;
@@ -18,18 +38,17 @@ export default function Card3D({ children, width = 600, height = 900 }: Props) {
     el.style.setProperty("--my", `${(y / r.height) * 100}%`);
   }
   function onLeave() {
-    const el = ref.current!;
+    const el = inner.current!;
     el.style.transform = `rotateX(0deg) rotateY(0deg)`;
   }
 
   return (
     <div className="relative mx-auto" style={{ perspective: 1200 }}>
       <div
-        ref={ref}
+        ref={inner}
         onMouseMove={onMove}
         onMouseLeave={onLeave}
         className="card-3d card-surface relative overflow-hidden"
-        style={{ width, height }}
       >
         <div className="card-3d__shine" />
         {children}

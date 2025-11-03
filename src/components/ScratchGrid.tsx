@@ -55,7 +55,6 @@ export default function ScratchGrid() {
   }, []);
 
   const handleRevealed = async (id:number, quote:string) => {
-    // Check global 1-per-day rule
     const today = new Date().toDateString();
     const hasToday = Object.values(reveals).some(r => new Date(r.revealed_at).toDateString() === today);
     if (hasToday) { setLockedToday(true); return; }
@@ -72,8 +71,10 @@ export default function ScratchGrid() {
   };
 
   const order = useMemo(() => Array.from({length: NUM_TILES}, (_, i) => i + 1), []);
+
+  // XS: 5 cols, SM: 5 cols, MD+: 6 cols -> Always <= 6 rows for 30 tiles
   return (
-    <div className="grid grid-cols-4 gap-3.5 px-5 pb-6 pt-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-5 xl:grid-cols-5 md:gap-4">
+    <div className="grid grid-cols-5 gap-1.5 px-2 pb-3 pt-2 sm:grid-cols-5 sm:gap-2 md:grid-cols-6 md:gap-2.5 lg:gap-3">
       {order.map((id) => {
         const persisted = reveals[id] || null;
         const defaultQuote = QUOTES[(id - 1) % QUOTES.length];

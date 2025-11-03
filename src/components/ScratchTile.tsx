@@ -41,7 +41,7 @@ export default function ScratchTile({ id, quote, revealedAt, locked, onRevealed 
       drawFoil(r.width, r.height);
       ctx.globalCompositeOperation="destination-out";
       ctx.lineCap="round"; ctx.lineJoin="round";
-      ctx.lineWidth=Math.max(12, Math.min(r.width,r.height)*0.18);
+      ctx.lineWidth=Math.max(8, Math.min(r.width,r.height)*0.18);
     }
     function drawFoil(w:number,h:number){
       ctx.globalCompositeOperation="source-over";
@@ -95,12 +95,19 @@ export default function ScratchTile({ id, quote, revealedAt, locked, onRevealed 
   return (
     <div
       ref={wrapRef}
-      className="relative h-[156px] w-[112px] select-none rounded-xl text-slate-100 [background:linear-gradient(180deg,#0b1b3a_0%,#102b56_100%)] shadow"
+      className="relative
+                 h-[76px] w-[48px]               /* xs */
+                 sm:h-[88px] sm:w-[56px]         /* sm */
+                 md:h-[104px] md:w-[70px]        /* md */
+                 lg:h-[120px] lg:w-[82px]        /* lg */
+                 xl:h-[132px] xl:w-[92px]        /* xl */
+                 select-none rounded-lg text-slate-100
+                 [background:linear-gradient(180deg,#0b1b3a_0%,#102b56_100%)] shadow"
       aria-live="polite"
     >
-      <div className="absolute inset-0 flex flex-col items-center justify-center px-2 text-center">
-        <div className="font-quote text-[12px] leading-4 md:text-[13px]">{`"${quote}"`}</div>
-        <div className="mt-1 text-[10px] md:text-[11px] font-semibold opacity-75">
+      <div className="absolute inset-0 flex flex-col items-center justify-center px-1 text-center">
+        <div className="font-quote text-[10px] leading-4 sm:text-[11px] md:text-[12px] lg:text-[12px]">{`"${quote}"`}</div>
+        <div className="mt-0.5 text-[8px] sm:text-[9px] md:text-[9px] lg:text-[10px] font-semibold opacity-75">
           {revealedAt ? formatRevealed(revealedAt) : ""}
         </div>
       </div>
