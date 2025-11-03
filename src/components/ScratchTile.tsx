@@ -96,8 +96,8 @@ export default function ScratchTile({ id, quote, revealedAt, locked, onRevealed 
     <div
       ref={wrapRef}
       className="relative
-                 h-[76px] w-[48px]               /* xs */
-                 sm:h-[88px] sm:w-[56px]         /* sm */
+                 h-[104px] w-[70px]               /* xs */
+                 sm:h-[104px] sm:w-[70px]         /* sm */
                  md:h-[104px] md:w-[70px]        /* md */
                  lg:h-[120px] lg:w-[82px]        /* lg */
                  xl:h-[132px] xl:w-[92px]        /* xl */
