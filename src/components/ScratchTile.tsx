@@ -9,22 +9,22 @@ type Props = {
   onRevealed: (tsISO: string) => void;
 };
 
-function formatNoSeconds(iso?: string | null) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  // Locale-friendly without seconds
-  const opts: Intl.DateTimeFormatOptions = {
+const SCRATCH_THRESHOLD = 50; // %
+
+function formatRevealed(iso: string) {
+  const dt = new Date(iso);
+  const date = dt.toLocaleDateString(undefined, {
     year: "numeric",
     month: "short",
-    day: "2-digit",
+    day: "numeric",
+  });
+  const time = dt.toLocaleTimeString(undefined, {
     hour: "2-digit",
-    minute: "2-digit"
-  };
-  return new Intl.DateTimeFormat(undefined, opts).format(d);
+    minute: "2-digit",
+    hour12: false,
+  });
+  return `- Revealed on ${date} ${time}`;
 }
-
-
-const SCRATCH_THRESHOLD = 50;
 
 export default function ScratchTile({ id, quote, revealedAt, locked, onRevealed }: Props) {
   const canvasRef = useRef<HTMLCanvasElement|null>(null);
@@ -63,7 +63,7 @@ export default function ScratchTile({ id, quote, revealedAt, locked, onRevealed 
 
     let drawing=false, last:{x:number;y:number}|null=null;
     const pos=(e:any)=>{ const r=canvas.getBoundingClientRect(); const t=e.touches?.[0]; const x=(t?.clientX??e.clientX)-r.left; const y=(t?.clientY??e.clientY)-r.top; return {x,y}; };
-    const down=(e:any)=>{ if(locked){ alert("Only one scratch per day. Come back tomorrow!"); return; } drawing=true; last=pos(e); dot(last.x,last.y); e.preventDefault?.(); };
+    const down=(e:any)=>{ if(locked){ return; } drawing=true; last=pos(e); dot(last.x,last.y); e.preventDefault?.(); };
     const move=(e:any)=>{ if(!drawing) return; const p=pos(e); line(last!.x,last!.y,p.x,p.y); last=p; e.preventDefault?.(); };
     const up  =()=>{ if(!drawing) return; drawing=false; checkReveal(); };
 
@@ -103,27 +103,17 @@ export default function ScratchTile({ id, quote, revealedAt, locked, onRevealed 
   return (
     <div
       ref={wrapRef}
-      className="relative h-[132px] w-[88px] select-none rounded-xl text-zinc-900 [background:linear-gradient(180deg,#ff8a3d_0%,#ff6f12_100%)] shadow"
+      className="relative h-[88px] w-[132px] select-none rounded-xl text-zinc-900 [background:linear-gradient(180deg,#ff8a3d_0%,#ff6f12_100%)] shadow"
       aria-live="polite"
     >
       <div className="absolute inset-0 flex flex-col items-center justify-center px-2 text-center">
         <div className="font-quote text-[13px] leading-4 md:text-sm">{`"${quote}"`}</div>
-        <div className="mt-1 text-[8px] font-semibold opacity-75">
-  {revealed && revealedAt ? `- Scratched on ${formatNoSeconds(revealedAt)}` : ""}
-</div>
+        <div className="mt-1 text-[10px] md:text-[11px] font-semibold opacity-75">
+          {revealed && revealedAt ? formatRevealed(revealedAt) : ""}
+        </div>
       </div>
       {!revealed && <canvas ref={canvasRef} className="absolute inset-0 h-full w-full touch-none" />}
-
-      <div
-  ref={wrapRef}
-  className={`relative h-[88px] w-[132px] select-none rounded-xl text-zinc-900
-    [background:linear-gradient(180deg,#ff8a3d_0%,#ff6f12_100%)] shadow
-    ${locked && !revealed ? "opacity-60 cursor-not-allowed" : ""}
-  `}
-  aria-live="polite"
->
-
-        
+      {/* 'One per day' overlay removed; rule still enforced silently */}
     </div>
   );
 }

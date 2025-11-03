@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import ScratchTile from "./ScratchTile";
 
 const NUM_TILES = 30;
-const STORAGE_KEY = "scratchcard_state_v5";
+const STORAGE_KEY = "scratchcard_state_v6";
 type State = { scratched: Record<number,{ ts:string; quote:string }>; last: string|null; };
 
 const QUOTES = [
@@ -36,7 +36,7 @@ export default function ScratchGrid() {
   };
 
   return (
-    <div className="grid grid-cols-6 gap-3 px-5 pb-6 pt-3 md:grid-cols-5 md:gap-3.5">
+    <div className="grid grid-cols-5 gap-3 px-5 pb-6 pt-3 md:grid-cols-6 md:gap-3.5">
       {order.map(id=>{
         const persisted = state.scratched[id] || null;
         const defaultQuote = QUOTES[(id-1) % QUOTES.length];
