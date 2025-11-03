@@ -3,7 +3,7 @@ import { useRef } from "react";
 
 type Props = { children: React.ReactNode; width?: number; height?: number; };
 
-export default function Card3D({ children, width = 560, height = 880 }: Props) {
+export default function Card3D({ children, width = 600, height = 900 }: Props) {
   const ref = useRef<HTMLDivElement | null>(null);
 
   function onMove(e: React.MouseEvent) {
@@ -11,8 +11,8 @@ export default function Card3D({ children, width = 560, height = 880 }: Props) {
     const r = el.getBoundingClientRect();
     const x = e.clientX - r.left;
     const y = e.clientY - r.top;
-    const rx = ((y / r.height) - 0.5) * -10;  // tilt up/down
-    const ry = ((x / r.width) - 0.5) *  14;   // tilt left/right
+    const rx = ((y / r.height) - 0.5) * -10;
+    const ry = ((x / r.width) - 0.5) * 14;
     el.style.setProperty("transform", `rotateX(${rx}deg) rotateY(${ry}deg)`);
     el.style.setProperty("--mx", `${(x / r.width) * 100}%`);
     el.style.setProperty("--my", `${(y / r.height) * 100}%`);

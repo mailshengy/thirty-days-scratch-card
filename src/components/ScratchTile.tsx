@@ -6,23 +6,15 @@ type Props = {
   quote: string;
   revealedAt: string | null;
   locked: boolean;
-  onRevealed: (tsISO: string) => void;
+  onRevealed: () => void;
 };
 
 const SCRATCH_THRESHOLD = 50; // %
 
 function formatRevealed(iso: string) {
   const dt = new Date(iso);
-  const date = dt.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-  const time = dt.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
+  const date = dt.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  const time = dt.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false });
   return `- Revealed on ${date} ${time}`;
 }
 
@@ -75,7 +67,7 @@ export default function ScratchTile({ id, quote, revealedAt, locked, onRevealed 
       const total=img.data.length/4; let tr=0;
       for(let i=3;i<img.data.length;i+=4) if(img.data[i]===0) tr++;
       if((tr/total)*100>=SCRATCH_THRESHOLD){
-        const ts=new Date().toISOString(); setRevealed(true); onRevealed(ts);
+        setRevealed(true); onRevealed();
         canvas.style.transition="opacity .45s"; canvas.style.opacity="0";
         setTimeout(()=> canvas.style.display="none", 460);
       }
@@ -103,17 +95,16 @@ export default function ScratchTile({ id, quote, revealedAt, locked, onRevealed 
   return (
     <div
       ref={wrapRef}
-      className="relative h-[92px] w-[176px] select-none rounded-xl text-slate-100 [background:linear-gradient(180deg,#0b1b3a_0%,#0f274f_100%)] shadow"
+      className="relative h-[156px] w-[112px] select-none rounded-xl text-slate-100 [background:linear-gradient(180deg,#0b1b3a_0%,#102b56_100%)] shadow"
       aria-live="polite"
     >
       <div className="absolute inset-0 flex flex-col items-center justify-center px-2 text-center">
-        <div className="font-quote text-[13px] leading-4 md:text-sm">{`"${quote}"`}</div>
+        <div className="font-quote text-[12px] leading-4 md:text-[13px]">{`"${quote}"`}</div>
         <div className="mt-1 text-[10px] md:text-[11px] font-semibold opacity-75">
-          {revealed && revealedAt ? formatRevealed(revealedAt) : ""}
+          {revealedAt ? formatRevealed(revealedAt) : ""}
         </div>
       </div>
       {!revealed && <canvas ref={canvasRef} className="absolute inset-0 h-full w-full touch-none" />}
-      {/* 'One per day' overlay removed; rule still enforced silently */}
     </div>
   );
 }

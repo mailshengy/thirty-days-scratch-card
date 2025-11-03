@@ -1,11 +1,9 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import ScratchTile from "./ScratchTile";
+import { supabase } from "@/lib/supabaseClient";
 
 const NUM_TILES = 30;
-const STORAGE_KEY = "scratchcard_state_v7";
-type State = { scratched: Record<number,{ ts:string; quote:string }>; last: string|null; };
-
 const QUOTES = [
   "Keep it up!","Nice work!","Well done!","Small wins add up!","You're on a streak!",
   "Keep pushing!","One step at a time!","Great effort!","Stay consistent!","Progress is progress!",
@@ -15,39 +13,73 @@ const QUOTES = [
   "Tiny steps, big change!","Hold the line!","You've got momentum!","Keep the spark alive!","Forward and upward!"
 ];
 
-function todayStr() {
-  const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-function loadState(): State { try{ const raw=localStorage.getItem(STORAGE_KEY); return raw?JSON.parse(raw):{scratched:{},last:null}; }catch{ return {scratched:{},last:null}; } }
-function saveState(s: State){ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+type Reveal = { tile_index:number; quote:string; revealed_at:string };
 
 export default function ScratchGrid() {
-  const [state,setState]=useState<State>({scratched:{},last:null});
-  useEffect(()=>{ setState(loadState()); },[]);
-  const lockedToday = state.last === todayStr();
-  const order = useMemo(()=> Array.from({length:NUM_TILES},(_,i)=>i+1),[]);
+  const [reveals, setReveals] = useState<Record<number, Reveal>>({});
+  const [lockedToday, setLockedToday] = useState(false);
 
-  const handleRevealed = (id:number, quote:string, tsISO:string)=>{
-    setState(prev=>{
-      const next = { scratched:{...prev.scratched,[id]:{ts:tsISO, quote}}, last: todayStr() };
-      saveState(next);
-      return next;
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("tile_reveals")
+        .select("tile_index, quote, revealed_at")
+        .order("revealed_at", { ascending: true });
+
+      if (error) { console.error(error); return; }
+      if (!mounted) return;
+
+      const map: Record<number, Reveal> = {};
+      (data || []).forEach((r: any) => { map[r.tile_index] = r as Reveal; });
+
+      setReveals(map);
+      const today = new Date().toDateString();
+      const hasToday = (data || []).some((r: any) => new Date(r.revealed_at).toDateString() === today);
+      setLockedToday(hasToday);
+    })();
+
+    const channel = supabase
+      .channel("realtime:tile_reveals")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "tile_reveals" }, payload => {
+        const r = payload.new as any as Reveal;
+        setReveals(prev => ({ ...prev, [r.tile_index]: r }));
+        if (new Date(r.revealed_at).toDateString() === new Date().toDateString()) {
+          setLockedToday(true);
+        }
+      })
+      .subscribe();
+
+    return () => { mounted = false; supabase.removeChannel(channel); };
+  }, []);
+
+  const handleRevealed = async (id:number, quote:string) => {
+    const res = await fetch("/api/scratch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tileIndex: id, quote })
     });
+    if (res.status === 409) { setLockedToday(true); return; }
+    if (!res.ok) { alert("Failed to save scratch."); }
   };
 
+  const order = useMemo(() => Array.from({length: NUM_TILES}, (_, i) => i + 1), []);
   return (
-    <div className="grid grid-cols-3 gap-3.5 px-5 pb-6 pt-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 md:gap-4">
-      {order.map(id=>{
-        const persisted = state.scratched[id] || null;
-        const defaultQuote = QUOTES[(id-1) % QUOTES.length];
+    <div className="grid grid-cols-4 gap-3.5 px-5 pb-6 pt-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-5 xl:grid-cols-5 md:gap-4">
+      {order.map((id) => {
+        const persisted = reveals[id] || null;
+        const defaultQuote = QUOTES[(id - 1) % QUOTES.length];
         return (
           <ScratchTile
             key={id}
             id={id}
             quote={persisted?.quote || defaultQuote}
-            revealedAt={persisted?.ts || null}
+            revealedAt={persisted?.revealed_at || null}
             locked={lockedToday && !persisted}
-            onRevealed={(ts)=>handleRevealed(id, persisted?.quote || defaultQuote, ts)}
+            onRevealed={() => handleRevealed(id, persisted?.quote || defaultQuote)}
           />
         );
       })}
@@ -60,10 +92,13 @@ export function NewCardButton() {
   return (
     <button
       className="rounded-md border border-white/20 bg-white/10 px-3 py-1.5 text-xs text-slate-100 hover:bg-white/15 transition"
-      onClick={()=>{
+      onClick={async ()=>{
         const pw = prompt("Enter password to reset:");
         if (pw === "reset") {
-          localStorage.removeItem(STORAGE_KEY);
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return alert("Sign in first.");
+          const { error } = await supabase.from("tile_reveals").delete().gte("tile_index", 1);
+          if (error) { alert("Failed to reset: " + error.message); return; }
           location.reload();
         } else if (pw !== null) {
           alert("Wrong password");
