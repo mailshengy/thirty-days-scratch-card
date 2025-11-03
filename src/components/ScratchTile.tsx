@@ -113,11 +113,17 @@ export default function ScratchTile({ id, quote, revealedAt, locked, onRevealed 
 </div>
       </div>
       {!revealed && <canvas ref={canvasRef} className="absolute inset-0 h-full w-full touch-none" />}
-      {!revealed && locked && (
-        <div className="absolute inset-0 grid place-items-center rounded-xl bg-black/30 text-xs font-medium text-white">
-          One per day
-        </div>
-      )}
+
+      <div
+  ref={wrapRef}
+  className={`relative h-[88px] w-[132px] select-none rounded-xl text-zinc-900
+    [background:linear-gradient(180deg,#ff8a3d_0%,#ff6f12_100%)] shadow
+    ${locked && !revealed ? "opacity-60 cursor-not-allowed" : ""}
+  `}
+  aria-live="polite"
+>
+
+        
     </div>
   );
 }
