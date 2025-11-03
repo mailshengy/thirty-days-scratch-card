@@ -9,6 +9,21 @@ type Props = {
   onRevealed: (tsISO: string) => void;
 };
 
+function formatNoSeconds(iso?: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  // Locale-friendly without seconds
+  const opts: Intl.DateTimeFormatOptions = {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  };
+  return new Intl.DateTimeFormat(undefined, opts).format(d);
+}
+
+
 const SCRATCH_THRESHOLD = 50;
 
 export default function ScratchTile({ id, quote, revealedAt, locked, onRevealed }: Props) {
