@@ -3,7 +3,7 @@ import { useRef } from "react";
 
 type Props = { children: React.ReactNode; width?: number; height?: number; };
 
-export default function Card3D({ children, width = 860, height = 540 }: Props) {
+export default function Card3D({ children, width = 540, height = 960 }: Props) {
   const ref = useRef<HTMLDivElement | null>(null);
 
   function onMove(e: React.MouseEvent) {
