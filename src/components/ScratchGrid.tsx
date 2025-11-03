@@ -36,7 +36,7 @@ export default function ScratchGrid() {
   };
 
   return (
-    <div className="grid grid-cols-5 gap-3 px-5 pb-6 pt-3 md:grid-cols-6 md:gap-3.5">
+    <div className="grid grid-cols-6 gap-3 px-5 pb-6 pt-3 md:grid-cols-5 md:gap-3.5">
       {order.map(id=>{
         const persisted = state.scratched[id] || null;
         const defaultQuote = QUOTES[(id-1) % QUOTES.length];
