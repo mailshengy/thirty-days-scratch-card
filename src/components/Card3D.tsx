@@ -3,27 +3,29 @@ import { useEffect, useRef, useState } from "react";
 
 type Props = {
   children: React.ReactNode;
-  /** portrait ratio; mobile will be a bit taller automatically */
-  ratio?: number;
-  /** set false to force-disable all tilt */
-  enableTilt?: boolean;
+  ratio?: number;         // portrait aspect; mobile auto-taller
+  enableTilt?: boolean;   // set false to fully disable tilt
 };
+
+type MotionState = "unknown" | "enabled" | "denied";
 
 export default function Card3D({ children, ratio = 1.6, enableTilt = true }: Props) {
   const inner = useRef<HTMLDivElement | null>(null);
-  const dragState = useRef<{ active: boolean; x: number; y: number } | null>(null);
-  const [motionReady, setMotionReady] = useState<"unknown" | "enabled" | "denied">("unknown");
+  const drag = useRef<{ active: boolean } | null>(null);
 
-  // Responsive sizing (taller on mobile so 30 tiles fit)
+  const [isTouch, setIsTouch] = useState(false);
+  const [motionReady, setMotionReady] = useState<MotionState>("unknown");
+
+  // ---- Responsive size (taller on mobile so 30 tiles fit)
   useEffect(() => {
     const card = inner.current!;
     function size() {
-      const isMobile = window.innerWidth < 480;
+      const isMobile = window.matchMedia("(pointer: coarse)").matches || window.innerWidth < 480;
       const maxW = isMobile ? 520 : 560;
       const minW = isMobile ? 260 : 360;
       const vw = Math.min(window.innerWidth * 0.92, maxW);
       const width = Math.max(minW, vw);
-      const r = isMobile ? Math.max(1.8, ratio) : ratio;
+      const r = isMobile ? Math.max(1.85, ratio) : ratio;
       const height = Math.round(width * r);
       card.style.width = width + "px";
       card.style.height = height + "px";
@@ -35,7 +37,12 @@ export default function Card3D({ children, ratio = 1.6, enableTilt = true }: Pro
     return () => { ro.disconnect(); window.removeEventListener("resize", size); };
   }, [ratio]);
 
-  // Helpers
+  // ---- Environment detection (client-only)
+  useEffect(() => {
+    setIsTouch(window.matchMedia("(pointer: coarse)").matches);
+  }, []);
+
+  // ---- Helpers
   function setTilt(rx: number, ry: number) {
     const el = inner.current!;
     el.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
@@ -44,19 +51,16 @@ export default function Card3D({ children, ratio = 1.6, enableTilt = true }: Pro
     const el = inner.current!;
     el.style.transform = `rotateX(0deg) rotateY(0deg)`;
   }
-  function updateShine(clientX: number, clientY: number) {
+  function updateShineFrom(x: number, y: number) {
     const el = inner.current!;
     const r = el.getBoundingClientRect();
-    const x = clientX - r.left;
-    const y = clientY - r.top;
-    el.style.setProperty("--mx", `${(x / r.width) * 100}%`);
-    el.style.setProperty("--my", `${(y / r.height) * 100}%`);
+    el.style.setProperty("--mx", `${((x - r.left) / r.width) * 100}%`);
+    el.style.setProperty("--my", `${((y - r.top) / r.height) * 100}%`);
   }
 
-  // Desktop mouse hover (kept)
+  // ---- Desktop mouse hover tilt
   function onMouseMove(e: React.MouseEvent) {
-    if (!enableTilt) return;
-    if (window.matchMedia("(pointer: coarse)").matches) return; // skip on touch devices
+    if (!enableTilt || isTouch) return;
     const el = inner.current!;
     const r = el.getBoundingClientRect();
     const x = e.clientX - r.left;
@@ -64,83 +68,127 @@ export default function Card3D({ children, ratio = 1.6, enableTilt = true }: Pro
     const rx = ((y / r.height) - 0.5) * -10;
     const ry = ((x / r.width) - 0.5) * 14;
     setTilt(rx, ry);
-    updateShine(e.clientX, e.clientY);
+    updateShineFrom(e.clientX, e.clientY);
   }
   function onMouseLeave() {
-    if (!enableTilt) return;
+    if (!enableTilt || isTouch) return;
     resetTilt();
   }
 
-  // Touch-drag tilt (works everywhere)
+  // ---- Touch-drag tilt (works everywhere)
   useEffect(() => {
     if (!enableTilt) return;
     const el = inner.current!;
-    const onPointerDown = (e: PointerEvent | TouchEvent) => {
-      const t = (e as TouchEvent).touches?.[0] || (e as PointerEvent);
-      dragState.current = { active: true, x: t.clientX, y: t.clientY };
+    const down = (e: PointerEvent | TouchEvent) => {
+      drag.current = { active: true };
     };
-    const onPointerMove = (e: PointerEvent | TouchEvent) => {
-      if (!dragState.current?.active) return;
-      const t = (e as TouchEvent).touches?.[0] || (e as PointerEvent);
-      const r = el.getBoundingClientRect();
-      // Map relative position to angles
-      const x = (t.clientX - r.left) / r.width;
-      const y = (t.clientY - r.top) / r.height;
-      const rx = (0.5 - y) * 14; // up/down
-      const ry = (x - 0.5) * 18; // left/right
+    const move = (e: PointerEvent | TouchEvent) => {
+      if (!drag.current?.active) return;
+      const t: any = (e as TouchEvent).touches?.[0] || (e as PointerEvent);
+      const rect = el.getBoundingClientRect();
+      const x = (t.clientX - rect.left) / rect.width;
+      const y = (t.clientY - rect.top) / rect.height;
+      const rx = (0.5 - y) * 14;
+      const ry = (x - 0.5) * 18;
       setTilt(rx, ry);
-      updateShine(t.clientX, t.clientY);
-      e.preventDefault?.();
+      updateShineFrom(t.clientX, t.clientY);
+      (e as any).preventDefault?.();
     };
-    const end = () => { dragState.current = null; resetTilt(); };
+    const up = () => { if (drag.current) drag.current.active = false; resetTilt(); };
 
-    el.addEventListener("touchstart", onPointerDown, { passive: true });
-    el.addEventListener("touchmove", onPointerMove as any, { passive: false });
-    el.addEventListener("touchend", end, { passive: true });
-    el.addEventListener("pointerdown", onPointerDown as any, { passive: true });
-    window.addEventListener("pointermove", onPointerMove as any, { passive: false });
-    window.addEventListener("pointerup", end, { passive: true });
+    el.addEventListener("pointerdown", down, { passive: true });
+    window.addEventListener("pointermove", move as any, { passive: false });
+    window.addEventListener("pointerup", up, { passive: true });
+
+    // Touch events (for older browsers)
+    el.addEventListener("touchstart", down, { passive: true });
+    el.addEventListener("touchmove", move as any, { passive: false });
+    el.addEventListener("touchend", up, { passive: true });
 
     return () => {
-      el.removeEventListener("touchstart", onPointerDown as any);
-      el.removeEventListener("touchmove", onPointerMove as any);
-      el.removeEventListener("touchend", end as any);
-      el.removeEventListener("pointerdown", onPointerDown as any);
-      window.removeEventListener("pointermove", onPointerMove as any);
-      window.removeEventListener("pointerup", end as any);
+      el.removeEventListener("pointerdown", down);
+      window.removeEventListener("pointermove", move as any);
+      window.removeEventListener("pointerup", up);
+      el.removeEventListener("touchstart", down);
+      el.removeEventListener("touchmove", move as any);
+      el.removeEventListener("touchend", up);
     };
   }, [enableTilt]);
 
-  // Optional motion-sensor tilt (user-opt in on iOS)
-  async function enableMotion() {
+  // ---- iOS permission flow (fix)
+  async function requestMotionPermission() {
     try {
-      const anyWindow = window as any;
-      if (typeof anyWindow.DeviceMotionEvent?.requestPermission === "function") {
-        const res = await anyWindow.DeviceMotionEvent.requestPermission();
-        if (res !== "granted") return setMotionReady("denied");
+      const w: any = window;
+
+      // iOS 13+ (Safari): try DeviceOrientation first
+      if (typeof w.DeviceOrientationEvent?.requestPermission === "function") {
+        const res = await w.DeviceOrientationEvent.requestPermission();
+        if (res !== "granted") {
+          // fallback: some devices grant on DeviceMotion path
+          if (typeof w.DeviceMotionEvent?.requestPermission === "function") {
+            const res2 = await w.DeviceMotionEvent.requestPermission();
+            if (res2 !== "granted") return setMotionReady("denied");
+          } else {
+            return setMotionReady("denied");
+          }
+        }
+        setMotionReady("enabled");
+        return;
       }
+
+      // Some WebViews only expose DeviceMotion request
+      if (typeof w.DeviceMotionEvent?.requestPermission === "function") {
+        const res = await w.DeviceMotionEvent.requestPermission();
+        setMotionReady(res === "granted" ? "enabled" : "denied");
+        return;
+      }
+
+      // Android & desktop: no prompt; just enable and see if events arrive
       setMotionReady("enabled");
     } catch {
       setMotionReady("denied");
     }
   }
 
+  // ---- Motion listeners once enabled
   useEffect(() => {
     if (!enableTilt || motionReady !== "enabled") return;
-    const handle = (e: DeviceOrientationEvent) => {
-      // gamma: left/right (-90..90), beta: front/back (-180..180)
-      const gamma = e.gamma ?? 0; // x-tilt
-      const beta = e.beta ?? 0;   // y-tilt
-      const ry = (gamma / 45) * 14; // scale into our 3D range
-      const rx = (-beta / 60) * 10; // negative so device tilt “feels” right
+
+    // DeviceOrientation (preferred)
+    const onOrient = (e: DeviceOrientationEvent) => {
+      // gamma: left/right, beta: front/back
+      const gamma = e.gamma ?? 0; // -90..90
+      const beta = e.beta ?? 0;   // -180..180
+      const ry = (gamma / 45) * 14;
+      const rx = (-beta / 60) * 10;
       setTilt(rx, ry);
     };
-    window.addEventListener("deviceorientation", handle, true);
-    return () => window.removeEventListener("deviceorientation", handle as any, true);
+
+    // Fallback from devicemotion (use gravity vector)
+    const onMotion = (e: DeviceMotionEvent) => {
+      const g = e.accelerationIncludingGravity;
+      if (!g) return;
+      // Normalize and map roughly to angles
+      const x = (g.x ?? 0) / 9.81;   // left/right tilt
+      const y = (g.y ?? 0) / 9.81;   // front/back
+      const ry = x * 14;
+      const rx = -y * 10;
+      setTilt(rx, ry);
+    };
+
+    window.addEventListener("deviceorientation", onOrient, true);
+    window.addEventListener("devicemotion", onMotion, true);
+
+    return () => {
+      window.removeEventListener("deviceorientation", onOrient as any, true);
+      window.removeEventListener("devicemotion", onMotion as any, true);
+    };
   }, [motionReady, enableTilt]);
 
-  // Reduced-motion users: disable tilt entirely
-  const reduceMotion = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  // Reduced-motion users: disable tilt animation entirely
+  const reduceMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
   return (
     <div className="relative mx-auto" style={{ perspective: 1200 }}>
@@ -153,16 +201,18 @@ export default function Card3D({ children, ratio = 1.6, enableTilt = true }: Pro
         }`}
       >
         <div className="card-3d__shine" />
-        {/* Motion toggle only shown on touch devices if permission is needed */}
-        {enableTilt && motionReady !== "enabled" && typeof window !== "undefined" &&
-          window.matchMedia?.("(pointer: coarse)").matches && (
+
+        {/* Show the button only on touch devices, before permission is granted */}
+        {enableTilt && isTouch && motionReady !== "enabled" && (
           <button
-            onClick={enableMotion}
-            className="absolute right-2 top-2 rounded-md bg-white/50 px-2 py-1 text-[10px] font-semibold text-slate-900 backdrop-blur hover:bg-white/70"
+            onClick={requestMotionPermission}
+            type="button"
+            className="absolute right-2 top-2 rounded-md bg-white/60 px-2 py-1 text-[10px] font-semibold text-slate-900 backdrop-blur hover:bg-white/80 active:scale-[.98]"
           >
             Enable Motion Tilt
           </button>
         )}
+
         {children}
       </div>
     </div>
