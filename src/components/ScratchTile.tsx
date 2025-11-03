@@ -108,9 +108,9 @@ export default function ScratchTile({ id, quote, revealedAt, locked, onRevealed 
     >
       <div className="absolute inset-0 flex flex-col items-center justify-center px-2 text-center">
         <div className="font-quote text-[13px] leading-4 md:text-sm">{`"${quote}"`}</div>
-        <div className="mt-1 text-[11px] font-semibold opacity-80">
-          {revealed && revealedAt ? `- Revealed on ${new Date(revealedAt).toLocaleString()}` : ""}
-        </div>
+        <div className="mt-1 text-[8px] font-semibold opacity-75">
+  {revealed && revealedAt ? `- Scratched on ${formatNoSeconds(revealedAt)}` : ""}
+</div>
       </div>
       {!revealed && <canvas ref={canvasRef} className="absolute inset-0 h-full w-full touch-none" />}
       {!revealed && locked && (
