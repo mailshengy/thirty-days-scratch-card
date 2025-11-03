@@ -29,3 +29,14 @@
     radial-gradient(800px 500px at 20% 15%, rgba(255,255,255,0.14), transparent 55%),
     linear-gradient(180deg, #ffd36b 0%, #ffb347 40%, #ff9b2f 70%, #ff7f11 100%);
 }
+
+@keyframes shineSweep {
+  0%   { --mx: 0%;   --my: 0%; }
+  50%  { --mx: 100%; --my: 50%; }
+  100% { --mx: 0%;   --my: 100%; }
+}
+
+/* when tilt is disabled or user prefers-reduced-motion */
+.animate-shine .card-3d__shine {
+  animation: shineSweep 5s ease-in-out infinite;
+}
