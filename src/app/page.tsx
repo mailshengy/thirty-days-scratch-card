@@ -9,9 +9,9 @@ export default function Page() {
           <div className="absolute inset-0 flex flex-col">
             {/* Title block (larger, but compact margins) */}
             <div className="px-3 pt-4 text-center">
-              <h1 className="font-display text-4xl md:text-6xl font-extrabold tracking-tight text-slate-900 leading-tight">
+              <div className="mt-0.5 md:mt-1 text-base md:text-xl font-semibold text-slate-900/95">
                 30 Minutes / 30 Days Scratch Card Challenge
-              </h1>
+              </div>
               <div className="mt-0.5 md:mt-1 text-base md:text-xl font-semibold text-slate-900/95">
                 You did it!
               </div>
